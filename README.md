@@ -697,4 +697,4 @@ The smoke test runs one minimal call against every resource group against `https
 
 ## License
 
-MIT — see [LICENSE](LICENSE).
+MIT - see [LICENSE](LICENSE).
