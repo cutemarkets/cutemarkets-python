@@ -5,7 +5,7 @@ build-backend = "hatchling.build"
 [project]
 name = "cutemarkets-python"
 dynamic = ["version"]
-description = "Official Python client for the CuteMarkets options market-data API"
+description = "Python SDK for real-time and historical options data: chains, contracts, quotes, trades, and aggregates."
 readme = "README.md"
 requires-python = ">=3.9"
 license = { file = "LICENSE" }
@@ -13,10 +13,14 @@ authors = [{ name = "CuteMarkets" }]
 keywords = [
   "cutemarkets",
   "options",
+  "options-api",
+  "historical-data",
   "finance",
   "market-data",
   "trading",
   "quant",
+  "python-sdk",
+  "quantitative-finance",
 ]
 classifiers = [
   "Development Status :: 4 - Beta",

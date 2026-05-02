@@ -1,33 +1,59 @@
-# cutemarkets
+# CuteMarkets Python SDK for Real-Time and Historical Options Data
 
-The official Python client for the [CuteMarkets](https://cutemarkets.com) options market-data API.
+The official Python options API client for [CuteMarkets](https://cutemarkets.com). Use it to query real-time and historical options data from Python, including options chain API snapshots, historical contracts with `as_of`, quotes, trades, aggregates, expirations, and ticker search.
 
-`cutemarkets` wraps every documented endpoint of the [CuteMarkets v1 REST API](https://cutemarkets.com/docs) in a namespaced, typed, Pythonic interface. Sync and async clients share the same method surface, response models are `pydantic` v2 classes that preserve the raw payload on `.raw`, every list endpoint ships with both one-page and auto-paginating variants, and every error path maps to a specific exception class so you can handle plan gating, rate limiting, and missing resources cleanly.
+`cutemarkets` wraps the [CuteMarkets v1 REST API](https://cutemarkets.com/docs) in a typed, namespaced, Pythonic interface. Sync and async clients share the same method surface, response models are `pydantic` v2 classes that preserve the raw payload on `.raw`, every list endpoint ships with both one-page and auto-paginating variants, and every error path maps to a specific exception class so you can handle plan gating, rate limiting, and missing resources cleanly.
+
+Quick links:
+
+- [Get API key](https://cutemarkets.com/signup)
+- [Read docs](https://cutemarkets.com/docs)
+- [Explore `cutebacktests`](https://github.com/cutemarkets/cutebacktests)
+- [Explore `cute-intraday-option-strats`](https://github.com/cutemarkets/cute-intraday-option-strats)
 
 ---
 
 ## Table of contents
 
-1. [Features](#features)
-2. [Installation](#installation)
-3. [Quick start](#quick-start)
-4. [Authentication](#authentication)
-5. [Client options](#client-options)
-6. [Resource reference](#resource-reference)
-7. [Models](#models)
-8. [Pagination](#pagination)
-9. [Filters and range queries](#filters-and-range-queries)
-10. [Dates, enums, booleans](#dates-enums-booleans)
-11. [Errors](#errors)
-12. [Rate limits](#rate-limits)
-13. [Async usage](#async-usage)
-14. [Recipes](#recipes)
-15. [Testing your integration](#testing-your-integration)
-16. [Versioning and compatibility](#versioning-and-compatibility)
-17. [Development](#development)
-18. [License](#license)
+1. [Use Cases](#use-cases)
+2. [Explore Examples](#explore-examples)
+3. [Features](#features)
+4. [Why this SDK instead of raw HTTP requests](#why-this-sdk-instead-of-raw-http-requests)
+5. [Installation](#installation)
+6. [Quick start](#quick-start)
+7. [Authentication](#authentication)
+8. [Client options](#client-options)
+9. [Resource reference](#resource-reference)
+10. [Models](#models)
+11. [Pagination](#pagination)
+12. [Filters and range queries](#filters-and-range-queries)
+13. [Dates, enums, booleans](#dates-enums-booleans)
+14. [Errors](#errors)
+15. [Rate limits](#rate-limits)
+16. [Async usage](#async-usage)
+17. [Recipes](#recipes)
+18. [Testing your integration](#testing-your-integration)
+19. [Versioning and compatibility](#versioning-and-compatibility)
+20. [Development](#development)
+21. [License](#license)
 
 ---
+
+## Use Cases
+
+- Build an options chain scanner for liquid contracts and spread filters.
+- Reconstruct historical contracts with `as_of` for backtests and event studies.
+- Estimate implied move around earnings from the ATM straddle.
+- Inspect quote quality before you trust an options backtest.
+
+## Explore Examples
+
+- [examples/quickstart.py](examples/quickstart.py)
+- [examples/historical_contracts_as_of.py](examples/historical_contracts_as_of.py)
+- [examples/build_options_chain_scanner.py](examples/build_options_chain_scanner.py)
+- [examples/earnings_implied_move.py](examples/earnings_implied_move.py)
+- [examples/quote_quality_filter.py](examples/quote_quality_filter.py)
+- [examples/smoke_test.py](examples/smoke_test.py)
 
 ## Features
 
@@ -41,6 +67,14 @@ The official Python client for the [CuteMarkets](https://cutemarkets.com) option
 - Rate-limit header introspection via `page.rate_limit` and `client.last_rate_limit` (coming soon).
 - Opt-in exponential-backoff retries on 429, 5xx, and transient network errors.
 - Custom `httpx.Client` / `httpx.AsyncClient` / `httpx.BaseTransport` injection for testing.
+
+---
+
+## Why this SDK instead of raw HTTP requests
+
+Raw HTTP calls work for quick experiments, but they force you to rebuild the same glue in every project: authentication headers, pagination, date coercion, query serialization, response typing, and error mapping. This SDK centralizes that work so your research code can focus on chain selection, contract filtering, quote quality, and analytics rather than transport plumbing.
+
+That matters even more for historical options data. Workflows like contract reconstruction with `as_of`, quote-aware filtering, and earnings event studies are easier to maintain when the API surface is typed, consistent, and reusable across both sync and async code.
 
 ---
 
@@ -658,6 +692,15 @@ assert client.status().is_ok
 
 The test suite in this repo uses the same pattern via a `make_client` fixture — see [`tests/conftest.py`](tests/conftest.py) for a worked example.
 
+For live integration checks, the example scripts cover the common developer workflows in this repo:
+
+- `python examples/quickstart.py`
+- `python examples/historical_contracts_as_of.py`
+- `python examples/build_options_chain_scanner.py`
+- `python examples/earnings_implied_move.py`
+- `python examples/quote_quality_filter.py`
+- `python examples/smoke_test.py`
+
 ---
 
 ## Versioning and compatibility
@@ -692,6 +735,13 @@ python examples/smoke_test.py
 ```
 
 The smoke test runs one minimal call against every resource group against `https://api.cutemarkets.com`, spaced out to stay within the Free plan's 10 req/min limit. It tolerates `ForbiddenError` on `quotes` (Expert Plan only) so Free / Developer keys can still use it.
+
+Additional live recipes:
+
+- `python examples/historical_contracts_as_of.py` for historical contract reconstruction
+- `python examples/build_options_chain_scanner.py` for chain and liquidity filtering
+- `python examples/earnings_implied_move.py` for ATM straddle implied move estimation
+- `python examples/quote_quality_filter.py` for historical quote-quality checks
 
 ---
 
