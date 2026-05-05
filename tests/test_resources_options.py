@@ -44,6 +44,8 @@ def test_chain_returns_page_of_snapshots(make_client, recorder) -> None:
     assert contract.details.ticker == "O:NFLX260402C00100000"
     assert contract.greeks.delta == 0.024
     assert contract.underlying_asset.price == 94.79
+    assert client.last_request_id == "cm_chain"
+    assert client.last_rate_limit.plan == "Developer"
 
     params = dict(recorder.last.url.params)
     assert params["contract_type"] == "call"
@@ -192,6 +194,7 @@ def test_quotes_list(make_client) -> None:
     page = client.options.quotes.list("O:NFLX260402C00075000")
     assert page.results[0].ask_price == 0.28
     assert page.results[0].bid_size == 1
+    assert client.last_request_id == "cm_q"
 
 
 def test_aggs_range(make_client, recorder) -> None:

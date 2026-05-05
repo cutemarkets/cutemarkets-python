@@ -14,7 +14,7 @@ from ._transport import (
     ClientOptions,
     resolve_api_key,
 )
-from .models.common import SystemStatus
+from .models.common import RateLimitInfo, SystemStatus
 from .resources.options import AsyncOptionsResource
 from .resources.status import AsyncStatusResource
 from .resources.tickers import AsyncTickersResource
@@ -80,6 +80,14 @@ class AsyncCuteMarkets:
     @property
     def base_url(self) -> str:
         return self._transport.options.base_url
+
+    @property
+    def last_request_id(self) -> Optional[str]:
+        return self._transport.last_request_id
+
+    @property
+    def last_rate_limit(self) -> RateLimitInfo:
+        return self._transport.last_rate_limit
 
     async def status(self) -> SystemStatus:
         """Poll the unauthenticated ``/v1/status/`` health endpoint."""

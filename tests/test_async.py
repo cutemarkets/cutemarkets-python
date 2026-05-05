@@ -20,6 +20,8 @@ async def test_async_chain_and_iter_chain(make_async_client) -> None:
     page = await client.options.chain("NFLX", limit=5)
     assert len(page) == 1
     assert page.results[0].details.ticker == "O:NFLX260402C00100000"
+    assert client.last_request_id == "cm_ac"
+    assert client.last_rate_limit.plan == "Developer"
 
     rows = []
     async for contract in client.options.iter_chain("NFLX", limit=5):

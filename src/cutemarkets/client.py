@@ -83,6 +83,16 @@ class CuteMarkets:
     def base_url(self) -> str:
         return self._transport.options.base_url
 
+    @property
+    def last_request_id(self) -> Optional[str]:
+        """CuteMarkets ``request_id`` from the most recent request, if any."""
+        return self._transport.last_request_id
+
+    @property
+    def last_rate_limit(self) -> RateLimitInfo:
+        """Rate-limit headers from the most recent request."""
+        return self._transport.last_rate_limit
+
     # ---------------- status ----------------
 
     def status(self) -> SystemStatus:

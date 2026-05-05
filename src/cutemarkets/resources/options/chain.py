@@ -2,12 +2,14 @@
 
 from __future__ import annotations
 
-from typing import Any, AsyncIterator, Iterator
+from typing import AsyncIterator, Iterator
 
 from ..._pagination import AsyncPage, Page
 from ..._transport import AsyncTransport, Transport
+from ...filters import ChainFilters
 from ...models.options import ContractSnapshot
 from .._base import quote_path
+from typing_extensions import Unpack
 
 
 def _path(ticker: str) -> str:
@@ -23,7 +25,7 @@ class ChainResource:
     def __init__(self, transport: Transport) -> None:
         self._t = transport
 
-    def __call__(self, ticker: str, **filters: Any) -> Page[ContractSnapshot]:
+    def __call__(self, ticker: str, **filters: Unpack[ChainFilters]) -> Page[ContractSnapshot]:
         """Fetch one page of the option chain for an underlying.
 
         Supports range filters via ``_gte`` / ``_gt`` / ``_lte`` / ``_lt``
@@ -34,7 +36,7 @@ class ChainResource:
             response, transport=self._t, parser=ContractSnapshot.model_validate
         )
 
-    def iter(self, ticker: str, **filters: Any) -> Iterator[ContractSnapshot]:
+    def iter(self, ticker: str, **filters: Unpack[ChainFilters]) -> Iterator[ContractSnapshot]:
         """Auto-paginate the option chain, yielding one contract at a time."""
         page = self(ticker, **filters)
         yield from page.iter_all()
@@ -46,7 +48,9 @@ class AsyncChainResource:
     def __init__(self, transport: AsyncTransport) -> None:
         self._t = transport
 
-    async def __call__(self, ticker: str, **filters: Any) -> AsyncPage[ContractSnapshot]:
+    async def __call__(
+        self, ticker: str, **filters: Unpack[ChainFilters]
+    ) -> AsyncPage[ContractSnapshot]:
         response = await self._t.request("GET", _path(ticker), params=filters)
         return AsyncPage.from_response(
             response, transport=self._t, parser=ContractSnapshot.model_validate
@@ -55,7 +59,7 @@ class AsyncChainResource:
     async def iter(
         self,
         ticker: str,
-        **filters: Any,
+        **filters: Unpack[ChainFilters],
     ) -> AsyncIterator[ContractSnapshot]:
         page = await self(ticker, **filters)
         async for item in page.iter_all():

@@ -64,7 +64,7 @@ Quick links:
 - One-shot `list(...)` returns a `Page[T]` (`results`, `next_url`, `request_id`, `rate_limit`, `.next()`). Auto-paginating `iter_list(...)` / `iter_*(...)` generators walk every page for you.
 - Automatic date / datetime / bool / Enum coercion and underscore-to-dot rewriting for range filters (`strike_price_gte=100` → `strike_price.gte=100`).
 - Typed exception hierarchy (`AuthenticationError`, `ForbiddenError`, `LookbackExceededError`, `NotFoundError`, `RateLimitError`, ...) selected from the `error.code` envelope field.
-- Rate-limit header introspection via `page.rate_limit` and `client.last_rate_limit` (coming soon).
+- Rate-limit header introspection via `page.rate_limit`, `client.last_rate_limit`, and `client.last_request_id`.
 - Opt-in exponential-backoff retries on 429, 5xx, and transient network errors.
 - Custom `httpx.Client` / `httpx.AsyncClient` / `httpx.BaseTransport` injection for testing.
 

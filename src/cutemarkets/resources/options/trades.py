@@ -2,12 +2,14 @@
 
 from __future__ import annotations
 
-from typing import Any, AsyncIterator, Iterator
+from typing import AsyncIterator, Iterator
 
 from ..._pagination import AsyncPage, Page
 from ..._transport import AsyncTransport, Transport
+from ...filters import TradeFilters
 from ...models.options import LastTrade, Trade
 from .._base import _parse_single, quote_path
+from typing_extensions import Unpack
 
 
 def _list_path(options_ticker: str) -> str:
@@ -27,7 +29,7 @@ class TradesResource:
     def __init__(self, transport: Transport) -> None:
         self._t = transport
 
-    def list(self, options_ticker: str, **filters: Any) -> Page[Trade]:
+    def list(self, options_ticker: str, **filters: Unpack[TradeFilters]) -> Page[Trade]:
         """Historical trades for one contract.
 
         Supports ``timestamp`` / ``timestamp_gte`` / ``timestamp_gt`` /
@@ -37,7 +39,7 @@ class TradesResource:
         response = self._t.request("GET", _list_path(options_ticker), params=filters)
         return Page.from_response(response, transport=self._t, parser=Trade.model_validate)
 
-    def iter_list(self, options_ticker: str, **filters: Any) -> Iterator[Trade]:
+    def iter_list(self, options_ticker: str, **filters: Unpack[TradeFilters]) -> Iterator[Trade]:
         """Auto-paginate historical trades."""
         page = self.list(options_ticker, **filters)
         yield from page.iter_all()
@@ -57,7 +59,7 @@ class AsyncTradesResource:
     def __init__(self, transport: AsyncTransport) -> None:
         self._t = transport
 
-    async def list(self, options_ticker: str, **filters: Any) -> AsyncPage[Trade]:
+    async def list(self, options_ticker: str, **filters: Unpack[TradeFilters]) -> AsyncPage[Trade]:
         response = await self._t.request("GET", _list_path(options_ticker), params=filters)
         return AsyncPage.from_response(
             response, transport=self._t, parser=Trade.model_validate
@@ -66,7 +68,7 @@ class AsyncTradesResource:
     async def iter_list(
         self,
         options_ticker: str,
-        **filters: Any,
+        **filters: Unpack[TradeFilters],
     ) -> AsyncIterator[Trade]:
         page = await self.list(options_ticker, **filters)
         async for item in page.iter_all():

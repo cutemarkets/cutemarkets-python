@@ -41,7 +41,7 @@ from typing import (
 import httpx
 
 from ._version import __version__
-from .errors import ConfigurationError, TransportError, error_from_response
+from .errors import APIError, ConfigurationError, TransportError, error_from_response
 from .models.common import RateLimitInfo
 
 DEFAULT_BASE_URL = "https://api.cutemarkets.com"
@@ -246,6 +246,8 @@ class Transport:
     ) -> None:
         self._options = options
         self._owns_client = client is None
+        self._last_request_id: Optional[str] = None
+        self._last_rate_limit = RateLimitInfo()
         if client is not None:
             self._client = client
         else:
@@ -265,6 +267,14 @@ class Transport:
 
     def set_api_key(self, api_key: Optional[str]) -> None:
         self._options.api_key = api_key
+
+    @property
+    def last_request_id(self) -> Optional[str]:
+        return self._last_request_id
+
+    @property
+    def last_rate_limit(self) -> RateLimitInfo:
+        return self._last_rate_limit
 
     def close(self) -> None:
         if self._owns_client:
@@ -349,7 +359,15 @@ class Transport:
                 attempt += 1
                 continue
 
-            return _parse_response(response)
+            try:
+                parsed = _parse_response(response)
+            except APIError as exc:
+                self._last_request_id = exc.request_id
+                self._last_rate_limit = exc.rate_limit or RateLimitInfo()
+                raise
+            self._last_request_id = parsed.request_id
+            self._last_rate_limit = parsed.rate_limit
+            return parsed
 
 
 # ---------------------------------------------------------------------------
@@ -369,6 +387,8 @@ class AsyncTransport:
     ) -> None:
         self._options = options
         self._owns_client = client is None
+        self._last_request_id: Optional[str] = None
+        self._last_rate_limit = RateLimitInfo()
         if client is not None:
             self._client = client
         else:
@@ -388,6 +408,14 @@ class AsyncTransport:
 
     def set_api_key(self, api_key: Optional[str]) -> None:
         self._options.api_key = api_key
+
+    @property
+    def last_request_id(self) -> Optional[str]:
+        return self._last_request_id
+
+    @property
+    def last_rate_limit(self) -> RateLimitInfo:
+        return self._last_rate_limit
 
     async def aclose(self) -> None:
         if self._owns_client:
@@ -470,7 +498,15 @@ class AsyncTransport:
                 attempt += 1
                 continue
 
-            return _parse_response(response)
+            try:
+                parsed = _parse_response(response)
+            except APIError as exc:
+                self._last_request_id = exc.request_id
+                self._last_rate_limit = exc.rate_limit or RateLimitInfo()
+                raise
+            self._last_request_id = parsed.request_id
+            self._last_rate_limit = parsed.rate_limit
+            return parsed
 
 
 # ---------------------------------------------------------------------------

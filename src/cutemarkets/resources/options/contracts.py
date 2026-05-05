@@ -6,8 +6,10 @@ from typing import Any, AsyncIterator, Iterator, Optional
 
 from ..._pagination import AsyncPage, Page
 from ..._transport import AsyncTransport, Transport
+from ...filters import ContractFilters
 from ...models.options import Contract
 from .._base import _parse_single, quote_path
+from typing_extensions import Unpack
 
 
 def _detail_path(options_ticker: str) -> str:
@@ -26,12 +28,12 @@ class ContractsResource:
     def __init__(self, transport: Transport) -> None:
         self._t = transport
 
-    def list(self, **filters: Any) -> Page[Contract]:
+    def list(self, **filters: Unpack[ContractFilters]) -> Page[Contract]:
         """List reference contracts. Supports range filters via ``_gte``/``_gt``/``_lte``/``_lt``."""
         response = self._t.request("GET", _LIST_PATH, params=filters)
         return Page.from_response(response, transport=self._t, parser=Contract.model_validate)
 
-    def iter_list(self, **filters: Any) -> Iterator[Contract]:
+    def iter_list(self, **filters: Unpack[ContractFilters]) -> Iterator[Contract]:
         """Auto-paginate :meth:`list`, yielding one contract at a time."""
         page = self.list(**filters)
         yield from page.iter_all()
@@ -50,13 +52,13 @@ class AsyncContractsResource:
     def __init__(self, transport: AsyncTransport) -> None:
         self._t = transport
 
-    async def list(self, **filters: Any) -> AsyncPage[Contract]:
+    async def list(self, **filters: Unpack[ContractFilters]) -> AsyncPage[Contract]:
         response = await self._t.request("GET", _LIST_PATH, params=filters)
         return AsyncPage.from_response(
             response, transport=self._t, parser=Contract.model_validate
         )
 
-    async def iter_list(self, **filters: Any) -> AsyncIterator[Contract]:
+    async def iter_list(self, **filters: Unpack[ContractFilters]) -> AsyncIterator[Contract]:
         page = await self.list(**filters)
         async for item in page.iter_all():
             yield item

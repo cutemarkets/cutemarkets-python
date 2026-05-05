@@ -26,6 +26,7 @@ from .errors import (
     RateLimitError,
     TransportError,
 )
+from .filters import ChainFilters, ContractFilters, QuoteFilters, TradeFilters
 from .models import (
     Aggregate,
     Contract,
@@ -72,6 +73,10 @@ __all__ = [
     "LookbackExceededError",
     "NotFoundError",
     "RateLimitError",
+    "ChainFilters",
+    "ContractFilters",
+    "QuoteFilters",
+    "TradeFilters",
     "CuteBase",
     "RateLimitInfo",
     "ServiceStatus",
