@@ -1,6 +1,6 @@
-# CuteMarkets Python SDK for Real-Time and Historical Options Data
+# CuteMarkets Python SDK for Stocks, Options, and Paper Trading
 
-The official Python options API client for [CuteMarkets](https://cutemarkets.com). Use it to query real-time and historical options data from Python, including options chain API snapshots, historical contracts with `as_of`, quotes, trades, aggregates, expirations, and ticker search.
+The official Python API client for [CuteMarkets](https://cutemarkets.com). Use it to query real-time and historical stocks and options data from Python, including stock snapshots, stock trades and quotes, option chain snapshots, historical contracts with `as_of`, aggregates, expirations, ticker search, and paper trading accounts/orders.
 
 `cutemarkets` wraps the [CuteMarkets v1 REST API](https://cutemarkets.com/docs) in a typed, namespaced, Pythonic interface. Sync and async clients share the same method surface, response models are `pydantic` v2 classes that preserve the raw payload on `.raw`, every list endpoint ships with both one-page and auto-paginating variants, and every error path maps to a specific exception class so you can handle plan gating, rate limiting, and missing resources cleanly.
 
@@ -42,8 +42,10 @@ Quick links:
 ## Use Cases
 
 - Build an options chain scanner for liquid contracts and spread filters.
+- Build stock watchlists, movers screens, historical bar studies, and quote-aware stock tools.
 - Reconstruct historical contracts with `as_of` for backtests and event studies.
 - Estimate implied move around earnings from the ATM straddle.
+- Submit simulated stock or single-leg option orders to CuteMarkets paper trading.
 - Inspect quote quality before you trust an options backtest.
 
 ## Explore Examples
@@ -53,12 +55,14 @@ Quick links:
 - [examples/build_options_chain_scanner.py](examples/build_options_chain_scanner.py)
 - [examples/earnings_implied_move.py](examples/earnings_implied_move.py)
 - [examples/quote_quality_filter.py](examples/quote_quality_filter.py)
+- [examples/stocks_quickstart.py](examples/stocks_quickstart.py)
+- [examples/paper_trading_quickstart.py](examples/paper_trading_quickstart.py)
 - [examples/smoke_test.py](examples/smoke_test.py)
 
 ## Features
 
 - Sync (`CuteMarkets`) and async (`AsyncCuteMarkets`) clients with identical surfaces.
-- Namespaced methods that mirror the docs: `client.options.chain(...)`, `client.options.aggs.range(...)`, `client.options.indicators.sma(...)`, `client.tickers.search(...)`, ...
+- Namespaced methods that mirror the docs: `client.options.chain(...)`, `client.stocks.snapshot(...)`, `client.stocks.aggs.range(...)`, `client.paper.orders.submit(...)`, `client.tickers.search(...)`, ...
 - Typed `pydantic` v2 models for every response, with `.raw` preserving the original JSON so new server fields never block you.
 - Short-name preservation on abbreviated wire payloads (`LastTrade.T/p/s/...`, `Aggregate.o/h/l/c/v/vw/t/n`) plus readable property aliases (`.ticker`, `.price`, `.open`, `.close`, ...).
 - One-shot `list(...)` returns a `Page[T]` (`results`, `next_url`, `request_id`, `rate_limit`, `.next()`). Auto-paginating `iter_list(...)` / `iter_*(...)` generators walk every page for you.
@@ -107,6 +111,20 @@ for contract in chain:
 
 print("request id:", chain.request_id)
 print("remaining this minute:", chain.rate_limit.remaining_minute)
+
+stock = client.stocks.snapshot("AAPL")
+print("stock snapshot:", stock.raw)
+
+account = client.paper.accounts.create(name="sandbox", initial_cash="100000")
+order = client.paper.orders.submit(
+    account.account.id,
+    symbol="AAPL",
+    qty="1",
+    side="buy",
+    type="market",
+    client_order_id="readme-aapl-1",
+)
+print(order.status)
 ```
 
 Async equivalent:
@@ -130,7 +148,30 @@ asyncio.run(main())
 
 API keys are prefixed `cm_...` and are passed as a Bearer token on the `Authorization` header.
 
-Three ways to provide your key, evaluated in this order:
+The legacy `api_key` argument and `CUTEMARKETS_API_KEY` environment variable still work for every namespace. For production systems that keep product-scoped keys separate, pass product keys explicitly or use the product env vars:
+
+```python
+client = CuteMarkets(
+    options_api_key="cm_options_...",
+    stocks_api_key="cm_stocks_...",
+    paper_api_key="cm_paper_...",
+)
+```
+
+```bash
+export CUTEMARKETS_OPTIONS_API_KEY=cm_options_xxx
+export CUTEMARKETS_STOCKS_API_KEY=cm_stocks_xxx
+export CUTEMARKETS_PAPER_API_KEY=cm_paper_xxx
+```
+
+Key resolution for each product namespace is:
+
+1. Product-specific constructor argument (`options_api_key`, `stocks_api_key`, `paper_api_key`).
+2. Legacy constructor `api_key`, which overrides env vars for backward compatibility.
+3. Product-specific env var.
+4. `CUTEMARKETS_API_KEY`.
+
+Three legacy ways to provide one key are still supported:
 
 1. Constructor argument:
    ```python
@@ -162,6 +203,9 @@ Get a free key at [cutemarkets.com/signup](https://cutemarkets.com/signup). Ever
 CuteMarkets(
     api_key: str | None = None,
     *,
+    options_api_key: str | None = None,
+    stocks_api_key: str | None = None,
+    paper_api_key: str | None = None,
     base_url: str = "https://api.cutemarkets.com",
     timeout: float = 30.0,
     max_retries: int = 2,
@@ -173,7 +217,10 @@ CuteMarkets(
 
 | Argument | Purpose |
 | --- | --- |
-| `api_key` | Override or supply the API key. Overrides `CUTEMARKETS_API_KEY`. |
+| `api_key` | Override or supply one key for every namespace. Overrides product env vars unless a product-specific constructor key is passed. |
+| `options_api_key` | Key for `client.options` and options-only routes; env fallback `CUTEMARKETS_OPTIONS_API_KEY`. |
+| `stocks_api_key` | Key for `client.stocks`; env fallback `CUTEMARKETS_STOCKS_API_KEY`. |
+| `paper_api_key` | Key for `client.paper`; env fallback `CUTEMARKETS_PAPER_API_KEY`. |
 | `base_url` | Point the client at a different host (e.g. a staging or proxy URL). |
 | `timeout` | Per-request timeout in seconds (applies to connect + read). |
 | `max_retries` | Retry attempts on 429, 5xx, and transient network errors. `0` disables retries. |
@@ -228,6 +275,56 @@ for row in client.tickers.search(query="NFLX", limit=8):
 exp = client.tickers.expirations("NFLX")
 exp.results  # ["2026-04-02", "2026-04-10", ...]
 ```
+
+### `client.stocks`
+
+Stock endpoints use Stocks API keys and live under `client.stocks`.
+
+```python
+# Current market state
+snap = client.stocks.snapshot("AAPL")
+movers = client.stocks.snapshots.movers("gainers", limit=20)
+
+# Reference data
+page = client.stocks.tickers.list(active=True, limit=100)
+detail = client.stocks.tickers.get("AAPL")
+related = client.stocks.tickers.related("AAPL")
+
+# Trades, quotes, bars, and indicators
+last_trade = client.stocks.trades.last("AAPL")
+quotes = client.stocks.quotes.list("AAPL", timestamp_gte="2026-05-06T13:30:00Z", limit=1000)
+bars = client.stocks.aggs.range("AAPL", 5, "minute", "2026-05-01", "2026-05-06")
+open_close = client.stocks.open_close("AAPL", "2026-05-06")
+sma = client.stocks.indicators.sma("AAPL", window=20, timespan="day", limit=100)
+```
+
+Paginated stock list endpoints return `Page[...]`; use `.next()` or `iter_list(...)` / `iter_range(...)` to walk every page. Quote endpoints require an Expert or Commercial Stocks API subscription.
+
+### `client.paper`
+
+Paper trading endpoints use Paper Trading API keys and do not route orders to a live broker.
+
+```python
+account = client.paper.accounts.create(name="agent-sandbox", initial_cash="100000")
+account_id = account.account.id
+
+order = client.paper.orders.submit(
+    account_id,
+    symbol="AAPL",
+    qty="1",
+    side="buy",
+    type="market",
+    time_in_force="day",
+    client_order_id="agent-aapl-001",
+)
+
+same_order = client.paper.orders.by_client_order_id(account_id, "agent-aapl-001")
+positions = client.paper.positions(account_id)
+fills = client.paper.fills(account_id)
+history = client.paper.portfolio_history(account_id)
+```
+
+Supported v1 paper orders are stock and single-leg option `market`/`limit` orders. Stock quantities can be decimal; option quantities must be whole contracts.
 
 ### `client.options.chain(ticker, **filters)`
 
@@ -699,6 +796,8 @@ For live integration checks, the example scripts cover the common developer work
 - `python examples/build_options_chain_scanner.py`
 - `python examples/earnings_implied_move.py`
 - `python examples/quote_quality_filter.py`
+- `python examples/stocks_quickstart.py`
+- `python examples/paper_trading_quickstart.py`
 - `python examples/smoke_test.py`
 
 ---

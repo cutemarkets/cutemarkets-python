@@ -24,6 +24,29 @@ from .options import (
     Trade,
     UnderlyingAsset,
 )
+from .paper import (
+    PaperAccount,
+    PaperAccountPayload,
+    PaperAccountSummary,
+    PaperEquitySnapshot,
+    PaperFill,
+    PaperOrder,
+    PaperPosition,
+)
+from .stocks import (
+    StockAggregate,
+    StockGroupedDaily,
+    StockLastQuote,
+    StockLastTrade,
+    StockOpenClose,
+    StockQuote,
+    StockRelatedTicker,
+    StockSnapshot,
+    StockSnapshotResponse,
+    StockTicker,
+    StockTickerType,
+    StockTrade,
+)
 from .tickers import ExpirationsResponse, TickerSearchResult
 
 __all__ = [
@@ -51,4 +74,23 @@ __all__ = [
     "MacdValue",
     "ExpirationsResponse",
     "TickerSearchResult",
+    "StockSnapshot",
+    "StockSnapshotResponse",
+    "StockTicker",
+    "StockTickerType",
+    "StockRelatedTicker",
+    "StockTrade",
+    "StockLastTrade",
+    "StockQuote",
+    "StockLastQuote",
+    "StockAggregate",
+    "StockOpenClose",
+    "StockGroupedDaily",
+    "PaperAccount",
+    "PaperAccountSummary",
+    "PaperAccountPayload",
+    "PaperOrder",
+    "PaperPosition",
+    "PaperFill",
+    "PaperEquitySnapshot",
 ]

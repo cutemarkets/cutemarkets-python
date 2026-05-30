@@ -12,11 +12,13 @@ from ._transport import (
     DEFAULT_TIMEOUT,
     ClientOptions,
     Transport,
-    resolve_api_key,
+    resolve_product_api_key,
 )
 from .models.common import RateLimitInfo, SystemStatus
 from .resources.options import OptionsResource
+from .resources.paper import PaperResource
 from .resources.status import StatusResource
+from .resources.stocks import StocksResource
 from .resources.tickers import TickersResource
 
 
@@ -46,6 +48,9 @@ class CuteMarkets:
         self,
         api_key: Optional[str] = None,
         *,
+        options_api_key: Optional[str] = None,
+        stocks_api_key: Optional[str] = None,
+        paper_api_key: Optional[str] = None,
         base_url: str = DEFAULT_BASE_URL,
         timeout: float = DEFAULT_TIMEOUT,
         max_retries: int = DEFAULT_MAX_RETRIES,
@@ -53,8 +58,13 @@ class CuteMarkets:
         transport: Optional[httpx.BaseTransport] = None,
         http_client: Optional[httpx.Client] = None,
     ) -> None:
+        resolved_options_key = resolve_product_api_key(
+            options_api_key,
+            api_key,
+            "CUTEMARKETS_OPTIONS_API_KEY",
+        )
         options = ClientOptions(
-            api_key=resolve_api_key(api_key),
+            api_key=resolved_options_key,
             base_url=base_url,
             timeout=timeout,
             max_retries=max_retries,
@@ -68,6 +78,14 @@ class CuteMarkets:
         self._status = StatusResource(self._transport)
         self.tickers = TickersResource(self._transport)
         self.options = OptionsResource(self._transport)
+        self.stocks = StocksResource(
+            self._transport,
+            api_key=resolve_product_api_key(stocks_api_key, api_key, "CUTEMARKETS_STOCKS_API_KEY"),
+        )
+        self.paper = PaperResource(
+            self._transport,
+            api_key=resolve_product_api_key(paper_api_key, api_key, "CUTEMARKETS_PAPER_API_KEY"),
+        )
 
     # ---------------- public config ----------------
 

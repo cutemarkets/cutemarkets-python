@@ -103,6 +103,7 @@ def make_client(recorder: RequestRecorder):
         api_key: Optional[str] = "cm_test",
         status_code: int = 200,
         headers: Optional[Dict[str, str]] = None,
+        **client_kwargs: Any,
     ) -> CuteMarkets:
         handler = _make_handler(response_map, recorder, status_code, headers)
         transport = httpx.MockTransport(handler)
@@ -110,6 +111,7 @@ def make_client(recorder: RequestRecorder):
             api_key=api_key,
             transport=transport,
             max_retries=0,
+            **client_kwargs,
         )
 
     return factory
@@ -123,6 +125,7 @@ def make_async_client(recorder: RequestRecorder):
         api_key: Optional[str] = "cm_test",
         status_code: int = 200,
         headers: Optional[Dict[str, str]] = None,
+        **client_kwargs: Any,
     ) -> AsyncCuteMarkets:
         handler = _make_handler(response_map, recorder, status_code, headers)
         transport = httpx.MockTransport(handler)
@@ -130,6 +133,7 @@ def make_async_client(recorder: RequestRecorder):
             api_key=api_key,
             transport=transport,
             max_retries=0,
+            **client_kwargs,
         )
 
     return factory

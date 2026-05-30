@@ -12,11 +12,13 @@ from ._transport import (
     DEFAULT_TIMEOUT,
     AsyncTransport,
     ClientOptions,
-    resolve_api_key,
+    resolve_product_api_key,
 )
 from .models.common import RateLimitInfo, SystemStatus
 from .resources.options import AsyncOptionsResource
+from .resources.paper import AsyncPaperResource
 from .resources.status import AsyncStatusResource
+from .resources.stocks import AsyncStocksResource
 from .resources.tickers import AsyncTickersResource
 
 
@@ -47,6 +49,9 @@ class AsyncCuteMarkets:
         self,
         api_key: Optional[str] = None,
         *,
+        options_api_key: Optional[str] = None,
+        stocks_api_key: Optional[str] = None,
+        paper_api_key: Optional[str] = None,
         base_url: str = DEFAULT_BASE_URL,
         timeout: float = DEFAULT_TIMEOUT,
         max_retries: int = DEFAULT_MAX_RETRIES,
@@ -54,8 +59,13 @@ class AsyncCuteMarkets:
         transport: Optional[httpx.AsyncBaseTransport] = None,
         http_client: Optional[httpx.AsyncClient] = None,
     ) -> None:
+        resolved_options_key = resolve_product_api_key(
+            options_api_key,
+            api_key,
+            "CUTEMARKETS_OPTIONS_API_KEY",
+        )
         options = ClientOptions(
-            api_key=resolve_api_key(api_key),
+            api_key=resolved_options_key,
             base_url=base_url,
             timeout=timeout,
             max_retries=max_retries,
@@ -69,6 +79,14 @@ class AsyncCuteMarkets:
         self._status = AsyncStatusResource(self._transport)
         self.tickers = AsyncTickersResource(self._transport)
         self.options = AsyncOptionsResource(self._transport)
+        self.stocks = AsyncStocksResource(
+            self._transport,
+            api_key=resolve_product_api_key(stocks_api_key, api_key, "CUTEMARKETS_STOCKS_API_KEY"),
+        )
+        self.paper = AsyncPaperResource(
+            self._transport,
+            api_key=resolve_product_api_key(paper_api_key, api_key, "CUTEMARKETS_PAPER_API_KEY"),
+        )
 
     @property
     def api_key(self) -> Optional[str]:

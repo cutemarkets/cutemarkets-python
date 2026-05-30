@@ -79,3 +79,30 @@ async def test_async_aggs_range_and_previous(make_async_client) -> None:
     assert prev.close == 22.7
     assert prev.ticker == "O:X"
     await client.aclose()
+
+
+async def test_async_stocks_and_paper_namespaces(make_async_client, recorder) -> None:
+    account_id = "11111111-1111-1111-1111-111111111111"
+    client = make_async_client(
+        {
+            "/v1/stocks/tickers/AAPL/": {
+                "status": "OK",
+                "results": {"ticker": "AAPL", "name": "Apple Inc."},
+            },
+            "/v1/paper/accounts/": {
+                "account": {"id": account_id, "name": "Async", "cash": "100000.0000"},
+                "summary": {"cash": "100000.0000", "equity": "100000.0000"},
+            },
+        },
+        api_key="cm_default",
+        stocks_api_key="cm_stock",
+        paper_api_key="cm_paper",
+    )
+    ticker = await client.stocks.tickers.get("AAPL")
+    assert ticker.ticker == "AAPL"
+    assert recorder.last_auth == "Bearer cm_stock"
+
+    account = await client.paper.accounts.create(name="Async")
+    assert account.account.id == account_id
+    assert recorder.last_auth == "Bearer cm_paper"
+    await client.aclose()

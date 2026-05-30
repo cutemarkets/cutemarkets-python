@@ -25,7 +25,7 @@ from typing import (
     TypeVar,
 )
 
-from ._transport import AsyncTransport, Response, Transport
+from ._transport import DEFAULT_AUTH_KEY, AsyncTransport, Response, Transport
 from .models.common import RateLimitInfo
 
 T = TypeVar("T")
@@ -79,6 +79,7 @@ class Page(Generic[T]):
     status: Optional[str] = None
     _transport: Optional[Transport] = None
     _parser: Optional[Callable[[Any], T]] = None
+    _api_key: Any = DEFAULT_AUTH_KEY
 
     @classmethod
     def from_response(
@@ -87,6 +88,7 @@ class Page(Generic[T]):
         *,
         transport: Transport,
         parser: Callable[[Any], T],
+        api_key: Any = DEFAULT_AUTH_KEY,
     ) -> "Page[T]":
         state = _parse_page(response, parser)
         return cls(
@@ -97,6 +99,7 @@ class Page(Generic[T]):
             status=state.status,
             _transport=transport,
             _parser=parser,
+            _api_key=api_key,
         )
 
     @property
@@ -110,8 +113,13 @@ class Page(Generic[T]):
         """
         if not self.next_url or self._transport is None or self._parser is None:
             return None
-        response = self._transport.request_url("GET", self.next_url)
-        return Page.from_response(response, transport=self._transport, parser=self._parser)
+        response = self._transport.request_url("GET", self.next_url, api_key=self._api_key)
+        return Page.from_response(
+            response,
+            transport=self._transport,
+            parser=self._parser,
+            api_key=self._api_key,
+        )
 
     def iter_all(self) -> Iterator[T]:
         """Yield items from this page, then from every subsequent page."""
@@ -139,6 +147,7 @@ class AsyncPage(Generic[T]):
     status: Optional[str] = None
     _transport: Optional[AsyncTransport] = None
     _parser: Optional[Callable[[Any], T]] = None
+    _api_key: Any = DEFAULT_AUTH_KEY
 
     @classmethod
     def from_response(
@@ -147,6 +156,7 @@ class AsyncPage(Generic[T]):
         *,
         transport: AsyncTransport,
         parser: Callable[[Any], T],
+        api_key: Any = DEFAULT_AUTH_KEY,
     ) -> "AsyncPage[T]":
         state = _parse_page(response, parser)
         return cls(
@@ -157,6 +167,7 @@ class AsyncPage(Generic[T]):
             status=state.status,
             _transport=transport,
             _parser=parser,
+            _api_key=api_key,
         )
 
     @property
@@ -166,11 +177,12 @@ class AsyncPage(Generic[T]):
     async def next(self) -> Optional["AsyncPage[T]"]:
         if not self.next_url or self._transport is None or self._parser is None:
             return None
-        response = await self._transport.request_url("GET", self.next_url)
+        response = await self._transport.request_url("GET", self.next_url, api_key=self._api_key)
         return AsyncPage.from_response(
             response,
             transport=self._transport,
             parser=self._parser,
+            api_key=self._api_key,
         )
 
     async def iter_all(self) -> AsyncIterator[T]:

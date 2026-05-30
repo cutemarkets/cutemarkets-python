@@ -49,6 +49,7 @@ DEFAULT_TIMEOUT = 30.0
 DEFAULT_MAX_RETRIES = 2
 _RANGE_SUFFIXES = ("_gte", "_gt", "_lte", "_lt")
 _USER_AGENT = f"cutemarkets-python/{__version__}"
+DEFAULT_AUTH_KEY = object()
 
 QueryValue = Union[str, int, float, bool, _dt.date, _dt.datetime, Enum, None, Iterable[Any]]
 
@@ -156,6 +157,24 @@ def resolve_api_key(explicit: Optional[str]) -> Optional[str]:
         return explicit
     env = os.environ.get("CUTEMARKETS_API_KEY")
     return env or None
+
+
+def resolve_product_api_key(
+    explicit_product: Optional[str],
+    explicit_default: Optional[str],
+    env_name: str,
+) -> Optional[str]:
+    """Resolve a product-scoped key.
+
+    Explicit product key wins first. An explicit legacy/default ``api_key``
+    wins over product env vars for backward compatibility. If neither was
+    passed, use the product-specific env var and then the legacy fallback.
+    """
+    if explicit_product:
+        return explicit_product
+    if explicit_default:
+        return explicit_default
+    return os.environ.get(env_name) or os.environ.get("CUTEMARKETS_API_KEY") or None
 
 
 def build_auth_headers(api_key: Optional[str], user_agent: str) -> Dict[str, str]:
@@ -288,8 +307,8 @@ class Transport:
 
     # ---------------- request helpers ----------------
 
-    def _headers(self, *, require_auth: bool) -> Dict[str, str]:
-        api_key = self._options.api_key
+    def _headers(self, *, require_auth: bool, api_key_override: Any = DEFAULT_AUTH_KEY) -> Dict[str, str]:
+        api_key = self._options.api_key if api_key_override is DEFAULT_AUTH_KEY else api_key_override
         if require_auth:
             require_api_key(api_key)
         headers = build_auth_headers(api_key, self._options.user_agent)
@@ -302,7 +321,9 @@ class Transport:
         path: str,
         *,
         params: Optional[Mapping[str, QueryValue]] = None,
+        json: Any = None,
         require_auth: bool = True,
+        api_key: Any = DEFAULT_AUTH_KEY,
     ) -> Response:
         """Send a request by path (prefixed with the configured base URL)."""
         url = build_url(self._options.base_url, path)
@@ -310,7 +331,9 @@ class Transport:
             method,
             url,
             params=serialize_params(params),
+            json=json,
             require_auth=require_auth,
+            api_key=api_key,
         )
 
     def request_url(
@@ -319,9 +342,10 @@ class Transport:
         url: str,
         *,
         require_auth: bool = True,
+        api_key: Any = DEFAULT_AUTH_KEY,
     ) -> Response:
         """Send a request to a fully-qualified URL (used for ``next_url``)."""
-        return self._send(method, url, params=None, require_auth=require_auth)
+        return self._send(method, url, params=None, json=None, require_auth=require_auth, api_key=api_key)
 
     def _send(
         self,
@@ -329,9 +353,11 @@ class Transport:
         url: str,
         *,
         params: Optional[List[Tuple[str, str]]],
+        json: Any,
         require_auth: bool,
+        api_key: Any,
     ) -> Response:
-        headers = self._headers(require_auth=require_auth)
+        headers = self._headers(require_auth=require_auth, api_key_override=api_key)
         attempt = 0
         while True:
             try:
@@ -339,6 +365,7 @@ class Transport:
                     method,
                     url,
                     params=params,
+                    json=json,
                     headers=headers,
                 )
             except httpx.TimeoutException as exc:
@@ -427,8 +454,8 @@ class AsyncTransport:
     async def __aexit__(self, *exc: Any) -> None:
         await self.aclose()
 
-    def _headers(self, *, require_auth: bool) -> Dict[str, str]:
-        api_key = self._options.api_key
+    def _headers(self, *, require_auth: bool, api_key_override: Any = DEFAULT_AUTH_KEY) -> Dict[str, str]:
+        api_key = self._options.api_key if api_key_override is DEFAULT_AUTH_KEY else api_key_override
         if require_auth:
             require_api_key(api_key)
         headers = build_auth_headers(api_key, self._options.user_agent)
@@ -441,14 +468,18 @@ class AsyncTransport:
         path: str,
         *,
         params: Optional[Mapping[str, QueryValue]] = None,
+        json: Any = None,
         require_auth: bool = True,
+        api_key: Any = DEFAULT_AUTH_KEY,
     ) -> Response:
         url = build_url(self._options.base_url, path)
         return await self._send(
             method,
             url,
             params=serialize_params(params),
+            json=json,
             require_auth=require_auth,
+            api_key=api_key,
         )
 
     async def request_url(
@@ -457,8 +488,9 @@ class AsyncTransport:
         url: str,
         *,
         require_auth: bool = True,
+        api_key: Any = DEFAULT_AUTH_KEY,
     ) -> Response:
-        return await self._send(method, url, params=None, require_auth=require_auth)
+        return await self._send(method, url, params=None, json=None, require_auth=require_auth, api_key=api_key)
 
     async def _send(
         self,
@@ -466,11 +498,13 @@ class AsyncTransport:
         url: str,
         *,
         params: Optional[List[Tuple[str, str]]],
+        json: Any,
         require_auth: bool,
+        api_key: Any,
     ) -> Response:
         import asyncio  # local import: no hard asyncio dep for sync users
 
-        headers = self._headers(require_auth=require_auth)
+        headers = self._headers(require_auth=require_auth, api_key_override=api_key)
         attempt = 0
         while True:
             try:
@@ -478,6 +512,7 @@ class AsyncTransport:
                     method,
                     url,
                     params=params,
+                    json=json,
                     headers=headers,
                 )
             except httpx.TimeoutException as exc:
@@ -531,11 +566,13 @@ __all__ = [
     "Transport",
     "AsyncTransport",
     "DEFAULT_BASE_URL",
+    "DEFAULT_AUTH_KEY",
     "DEFAULT_TIMEOUT",
     "DEFAULT_MAX_RETRIES",
     "serialize_params",
     "build_url",
     "resolve_api_key",
+    "resolve_product_api_key",
     "build_auth_headers",
     "require_api_key",
     "extract_results",
